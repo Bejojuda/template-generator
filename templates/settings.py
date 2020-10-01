@@ -137,3 +137,4 @@ SIMPLE_JWT = {
 # Used to save and access project Images when in development
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
+

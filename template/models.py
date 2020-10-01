@@ -1,3 +1,4 @@
+import os
 import uuid
 from django.db import models
 from django.db.models.signals import post_save
@@ -9,13 +10,18 @@ from .services import search_variables, create_variables
 from .validators import validate_file_extension
 
 
+def get_upload_path(instance, filename):
+    return os.path.join(
+      "documents", "date_%s" % instance.create_date, filename)
+
+
 class Template(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
-    document = models.FileField(validators=[validate_file_extension])
     name = models.CharField(max_length=30)
     description = models.CharField(max_length=30)
     create_date = models.DateField(auto_now_add=True)
     update_date = models.DateField(null=True, blank=True)
+    document = models.FileField(validators=[validate_file_extension], upload_to=get_upload_path)
     status = models.CharField(max_length=10, choices=(
         ('INA', 'Inactive'),
         ('ACT', 'Active')
@@ -35,7 +41,6 @@ def get_variables(sender, **kwargs):
         template = kwargs['instance']
         document = Document(template.document)
         variables = search_variables(document)
-        print(variables)
         create_variables(template, variables)
 
 

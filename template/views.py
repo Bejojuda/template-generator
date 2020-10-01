@@ -3,7 +3,7 @@ import re
 from docx import Document
 from rest_framework import generics
 from .models import Template
-from .serializers import TemplateSerializer, TemplateDetailsSerializer
+from .serializers import TemplateSerializer, TemplateDetailsSerializer, TemplateFillOutSerializer
 from general.pagination import LargeResultsSetPagination
 
 
@@ -26,3 +26,8 @@ class TemplateDetailsView(generics.RetrieveUpdateDestroyAPIView):
     lookup_field = 'uuid'
 
 
+class TemplateFillOutView(generics.UpdateAPIView, generics.RetrieveAPIView):
+    serializer_class = TemplateFillOutSerializer
+    queryset = Template.objects.all()
+
+    lookup_field = 'uuid'
