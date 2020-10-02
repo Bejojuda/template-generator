@@ -124,4 +124,4 @@ def replace_variables(doc, var={}):
                                 text = inline[index].text.replace(inline[index].text[start:start + length], '')
                                 inline[index].text = text
 
-    doc.save('QUE VIVA.docx')
+    return doc

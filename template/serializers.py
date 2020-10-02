@@ -1,3 +1,7 @@
+from io import BytesIO
+from wsgiref.util import FileWrapper
+
+from django.http import FileResponse, HttpResponse
 from docx import Document
 from rest_framework import serializers
 
@@ -35,9 +39,3 @@ class TemplateFillOutSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
         fields = '__all__'
-
-    def update(self, instance, validated_data):
-        doc = Document(instance.document)
-        document = replace_variables(doc, validated_data['sent_variables'])
-
-        return {}
