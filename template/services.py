@@ -32,13 +32,15 @@ def create_variables(template, variables_str=[]):
 
 
 def replace_variables(doc, var={}):
+    """
+    Receives a variables dictionary and replaces the variables inside the document 'doc' to then return a new document
+    """
     variables = {}
     if not var:
         return None
 
     for v in var:
         variables['{{'+v+'}}'] = var[v]
-    print(variables)
     paragraphs = list(doc.paragraphs)
     for t in doc.tables:
         for row in t.rows:

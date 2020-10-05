@@ -1,11 +1,8 @@
-import re
 from io import BytesIO
-from wsgiref.util import FileWrapper
 
 from django.http import HttpResponse
 from docx import Document
 from rest_framework import generics
-from rest_framework.exceptions import ValidationError
 
 from .models import Template
 from .serializers import TemplateSerializer, TemplateDetailsSerializer, TemplateFillOutSerializer
@@ -42,18 +39,16 @@ class TemplateFillOutView(generics.UpdateAPIView, generics.RetrieveAPIView):
     lookup_field = 'uuid'
 
     def put(self, request, *args, **kwargs):
+        """
+        When a PUT is made with 'sent_variables', a new .docx is generated with said variables added to the document.
+        The document is returned to be downloaded by the user.
+        """
         template = Template.objects.get(uuid__exact=self.kwargs['uuid'])
-        print(request.data)
         doc = Document(template.document)
         document = replace_variables(doc, request.data['sent_variables'])
-        print(request.data)
         f = BytesIO()
         document.save(f)
-        file_handle = template.document.open()
 
-        # send file
-        # response = FileResponse(file_handle, content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        f.seek(0)
         response = HttpResponse(f.getvalue(),
                                 content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = 'attachment; filename="%s"' % template.name

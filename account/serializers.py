@@ -2,7 +2,7 @@ from django.contrib.auth.hashers import make_password
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework.exceptions import ValidationError
-
+from .services.account_services import check_emails
 from .models import Account
 
 
@@ -16,10 +16,19 @@ class AccountSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Account
-        fields = ['uuid', 'username', 'password', 'firstname', 'lastname', 'position']
+        fields = ['uuid', 'username', 'email', 'password', 'firstname', 'lastname', 'position']
 
     def create(self, validated_data):
-        print(validated_data)
+        """
+        Checks if the provided E-mail is among the company's employees list, if authorized,
+        a hashed password is generated and saved to the database
+        """
+        email = validated_data['email']
+        if not check_emails(email):
+            raise ValidationError({"error": "E-mail does not belong to company employee"})
+        elif Account.objects.filter(email=email).exists():
+            raise ValidationError({"error": "A user with this E-mail already exists"})
+
         user = validated_data.pop('user')
 
         user['password'] = make_password(user['password'])
@@ -44,6 +53,9 @@ class AccountDetailsSerializer(serializers.ModelSerializer):
         fields = ['uuid', 'username', 'password', 'firstname', 'lastname', 'position']
 
     def update(self, instance, validated_data):
+        """
+        Updates user information
+        """
         user_data = validated_data.pop('user')
         user = User.objects.get(username=instance.user.username)
 
