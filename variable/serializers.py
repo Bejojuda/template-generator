@@ -7,4 +7,4 @@ class VariableViewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Variable
-        fields = ['uuid', 'name']
+        fields = ['uuid', 'name', 'optional']

@@ -6,10 +6,13 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 
 def check_emails(email):
+    """
+    Access online Google Sheet to check company's employees emails. If the email is present, a True value is returned
+    """
     scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
     # add credentials to the account
-    path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'Google Credentials.json')
+    path = os.path.join(pathlib.Path(__file__).parent.absolute(), 'google_credentials.json')
     creds = ServiceAccountCredentials.from_json_keyfile_name(path, scope)
 
     # authorize the clientsheet

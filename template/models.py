@@ -6,18 +6,13 @@ from django.dispatch import receiver
 from docx import Document
 
 from account.models import Account
-from .services import search_variables, create_variables
+from .services import search_variables, create_variables, search_optional_variables, get_upload_path
 from .validators import validate_file_extension
-
-
-def get_upload_path(instance, filename):
-    return os.path.join(
-      "documents", "date_%s" % instance.create_date, filename)
 
 
 class Template(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, primary_key=True, editable=False)
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, unique=True)
     description = models.CharField(max_length=30)
     create_date = models.DateField(auto_now_add=True)
     update_date = models.DateField(null=True, blank=True)
@@ -41,7 +36,8 @@ def get_variables(sender, **kwargs):
         template = kwargs['instance']
         document = Document(template.document)
         variables = search_variables(document)
-        create_variables(template, variables)
+        optional_variables = search_optional_variables(document)
+        create_variables(template, variables, optional_variables)
 
 
 

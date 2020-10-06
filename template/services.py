@@ -1,3 +1,4 @@
+import os
 import re
 
 from variable.models import Variable
@@ -21,7 +22,25 @@ def search_variables(document):
     return variables
 
 
-def create_variables(template, variables_str=[]):
+def search_optional_variables(document):
+    """
+    Search and return all of the optional variables in the document.
+    An optional variable has this format: [[variable_name]]
+    """
+    optional_variables = []
+    for p in document.paragraphs:
+        optional_variables += re.findall(r"\[\[(.[^{}]*?)\]\]", p.text)
+
+    for table in document.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for p in cell.paragraphs:
+                    optional_variables += re.findall(r"\[\[(.[^{}]*?)\]\]", p.text)
+    optional_variables = list(dict.fromkeys(optional_variables))
+    return optional_variables
+
+
+def create_variables(template, variables_str=[], optional_variables_str=[]):
     """
     Receives a list of variables and a template, and then creates the variable objects and the relationship
     with said template object
@@ -30,18 +49,28 @@ def create_variables(template, variables_str=[]):
         variable = Variable.objects.create(name=v, template=template)
         template.variables.add(variable)
 
+    for ov in optional_variables_str:
+        optional_variable = Variable.objects.create(name=ov, template=template, optional=True)
+        template.variables.add(optional_variable)
 
-def replace_variables(doc, var={}):
+
+def replace_variables(doc, var={}, opt={}):
     """
     Receives a variables dictionary and replaces the variables inside the document 'doc' to then return a new document
     """
     variables = {}
+    optional = {}
     if not var:
         return None
 
     for v in var:
         variables['{{'+v+'}}'] = var[v]
+    for o in opt:
+        variables['[['+o+']]'] = opt[o]
+        optional['[['+o+']]'] = True
+    print(variables)
     paragraphs = list(doc.paragraphs)
+    # Iterates the document tables to get the text inside each cell
     for t in doc.tables:
         for row in t.rows:
             for cell in row.cells:
@@ -127,3 +156,8 @@ def replace_variables(doc, var={}):
                                 inline[index].text = text
 
     return doc
+
+
+def get_upload_path(instance, filename):
+    return os.path.join(
+      "documents", "date_%s" % instance.create_date, filename)

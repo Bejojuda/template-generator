@@ -116,3 +116,5 @@ media/
 db.sqlite3
 
 **/migrations/*
+
+account/services/google_credentials.json

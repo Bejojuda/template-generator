@@ -1,13 +1,8 @@
-from io import BytesIO
-from wsgiref.util import FileWrapper
-
-from django.http import FileResponse, HttpResponse
-from docx import Document
 from rest_framework import serializers
 
 from variable.serializers import VariableViewSerializer
 from .models import Template
-from .services import replace_variables
+
 
 class TemplateSerializer(serializers.ModelSerializer):
     variables = VariableViewSerializer(many=True, read_only=True)

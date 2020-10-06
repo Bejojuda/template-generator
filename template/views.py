@@ -45,10 +45,17 @@ class TemplateFillOutView(generics.UpdateAPIView, generics.RetrieveAPIView):
         """
         template = Template.objects.get(uuid__exact=self.kwargs['uuid'])
         doc = Document(template.document)
-        document = replace_variables(doc, request.data['sent_variables'])
+
+        sent_variables = request.data['sent_variables']
+        optional_variables = {}
+
+        if 'optional_variables' in request.data:
+            optional_variables = request.data['optional_variables']
+
+        document = replace_variables(doc, sent_variables, optional_variables)
+
         f = BytesIO()
         document.save(f)
-
         response = HttpResponse(f.getvalue(),
                                 content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
         response['Content-Disposition'] = 'attachment; filename="%s"' % template.name
