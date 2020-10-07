@@ -50,7 +50,7 @@ class AccountDetailsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Account
-        fields = ['uuid', 'username', 'password', 'firstname', 'lastname', 'position']
+        fields = ['uuid', 'username', 'password', 'firstname', 'lastname', 'position', 'creator']
 
     def update(self, instance, validated_data):
         """
