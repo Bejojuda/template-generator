@@ -1,7 +1,7 @@
 import os
 import uuid
 from django.db import models
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from docx import Document
 
@@ -26,6 +26,9 @@ class Template(models.Model):
     def __str__(self):
         return self.name
 
+    def filename(self):
+        return os.path.basename(self.document.name)
+
 
 @receiver(post_save, sender=Template)
 def get_variables(sender, **kwargs):
@@ -38,7 +41,6 @@ def get_variables(sender, **kwargs):
         variables = search_variables(document)
         optional_variables = search_optional_variables(document)
         create_variables(template, variables, optional_variables)
-
 
 
 

@@ -1,13 +1,13 @@
-from io import BytesIO
+import os
 
 from django.http import HttpResponse
-from docx import Document
 from rest_framework import generics
+from rest_framework.response import Response
 
 from .models import Template
-from .serializers import TemplateSerializer, TemplateDetailsSerializer, TemplateFillOutSerializer
+from .serializers import TemplateSerializer, TemplateDetailsSerializer, TemplateFillOutSerializer, TemplateRenameFileSerializer
 from general.pagination import LargeResultsSetPagination
-from .services import replace_variables
+from .services import generate_document, rename_file
 
 
 class TemplateView(generics.ListCreateAPIView):
@@ -17,6 +17,33 @@ class TemplateView(generics.ListCreateAPIView):
     serializer_class = TemplateSerializer
     queryset = Template.objects.all()
     pagination_class = LargeResultsSetPagination
+    """
+    def get_queryset(self):
+        queryset = Template.objects.all()
+        template = queryset.first()
+
+        rename_file("Le new Docú.docx", template)
+
+        # os.rename(template.document.path, "Nuevo.docx")
+        print(os.path.basename(template.document.name))
+     """
+    """
+    def get_queryset(self):
+        pythoncom.CoInitialize()
+
+        queryset = Template.objects.all()
+        template = queryset.first()
+
+        w = wc.Dispatch('Word.Application')
+        path = os.path.join('media', template.document.path)
+        print(path)
+        doc = w.Documents.Open(path)
+        print(doc.__dict__)
+        path = os.path.join(path, 'Nuevo DOC.doc')
+        doc.SaveAs('Formato.doc', 16)
+        print(template.document.name)
+        return queryset
+    """
 
 
 class TemplateDetailsView(generics.RetrieveUpdateDestroyAPIView):
@@ -27,6 +54,10 @@ class TemplateDetailsView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Template.objects.all()
 
     lookup_field = 'uuid'
+
+    def put(self, request, *args, **kwargs):
+        template = Template.objects.get(uuid__exact=self.kwargs['uuid'])
+        rename_file("hh", template)
 
 
 class TemplateFillOutView(generics.UpdateAPIView, generics.RetrieveAPIView):
@@ -39,26 +70,26 @@ class TemplateFillOutView(generics.UpdateAPIView, generics.RetrieveAPIView):
     lookup_field = 'uuid'
 
     def put(self, request, *args, **kwargs):
-        """
-        When a PUT is made with 'sent_variables', a new .docx is generated with said variables added to the document.
-        The document is returned to be downloaded by the user.
-        """
         template = Template.objects.get(uuid__exact=self.kwargs['uuid'])
-        doc = Document(template.document)
+        response = generate_document(request.data, template)
 
-        sent_variables = request.data['sent_variables']
-        optional_variables = {}
+        return response
 
-        if 'optional_variables' in request.data:
-            optional_variables = request.data['optional_variables']
 
-        document = replace_variables(doc, sent_variables, optional_variables)
+class TemplateRenameFileView(generics.UpdateAPIView, generics.RetrieveAPIView):
+    serializer_class = TemplateRenameFileSerializer
+    queryset = Template.objects.all()
 
-        f = BytesIO()
-        document.save(f)
-        response = HttpResponse(f.getvalue(),
-                                content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-        response['Content-Disposition'] = 'attachment; filename="%s"' % template.name
+    lookup_field = 'uuid'
+
+    def put(self, request, *args, **kwargs):
+        template = Template.objects.get(uuid__exact=self.kwargs['uuid'])
+        templates = Template.objects.all()
+        res = rename_file(request.data['filename'], template, templates)
+
+        response = Response({
+            "filename": res
+        })
 
         return response
 

@@ -34,3 +34,12 @@ class TemplateFillOutSerializer(serializers.ModelSerializer):
     class Meta:
         model = Template
         fields = '__all__'
+
+
+class TemplateRenameFileSerializer(serializers.ModelSerializer):
+    file = serializers.CharField(source='filename', max_length=20, read_only=True)
+    filename = serializers.CharField(source='document.name', max_length=20, write_only=True)
+
+    class Meta:
+        model = Template
+        fields = ['filename', 'file']

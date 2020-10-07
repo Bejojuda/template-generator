@@ -1,5 +1,11 @@
 import os
 import re
+from io import BytesIO
+
+from django.core.files.base import ContentFile
+from django.http import HttpResponse
+from docx import Document
+from rest_framework.exceptions import ValidationError
 
 from variable.models import Variable
 
@@ -68,7 +74,6 @@ def replace_variables(doc, var={}, opt={}):
     for o in opt:
         variables['[['+o+']]'] = opt[o]
         optional['[['+o+']]'] = True
-    print(variables)
     paragraphs = list(doc.paragraphs)
     # Iterates the document tables to get the text inside each cell
     for t in doc.tables:
@@ -158,6 +163,75 @@ def replace_variables(doc, var={}, opt={}):
     return doc
 
 
+def generate_document(data, template):
+    """
+    When a PUT is made with variables, a new .docx is generated with said variables added to the document.
+    The document is returned to be downloaded by the user.
+    """
+    doc = Document(template.document)
+
+    sent_variables = data['sent_variables']
+    optional_variables = {}
+
+    template_variables = Variable.objects.filter(template_id=template.uuid, optional=False)
+    check_required_variables(sent_variables, template_variables)
+
+    if 'optional_variables' in data:
+        optional_variables = data['optional_variables']
+
+    document = replace_variables(doc, sent_variables, optional_variables)
+
+    f = BytesIO()
+    document.save(f)
+    response = HttpResponse(f.getvalue(),
+                            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    response['Content-Disposition'] = 'attachment; filename="%s"' % template.name
+
+    return response
+
+
 def get_upload_path(instance, filename):
+    """
+    Returns custom file path that has the creation date in the containing folder
+    """
     return os.path.join(
       "documents", "date_%s" % instance.create_date, filename)
+
+
+def check_required_variables(sent_v, template_v):
+    """
+    Checks if the sent variables are the same as the variables from the template
+    """
+    template_variables = [tv.name for tv in template_v]
+    sent_variables = [sv for sv in sent_v]
+    if not set(template_variables) == set(sent_variables):
+        raise ValidationError({"error": "Sent variables are not correct"})
+
+
+def rename_file(new_name, template, templates):
+    """
+    Changes the name of the file referred in the Template document FileField to new_name
+    """
+    pattern = re.compile('^[^<>:;,.?"*| /]+$')
+    if not pattern.match(new_name):
+        raise ValidationError({
+            "error": "File name is incorrect"
+        })
+
+    for t in templates:
+        if t.filename() == new_name:
+            raise ValidationError({
+                "error": "Document filename already exists"
+            })
+
+    old_path = template.document.path
+    new_path = old_path.replace(template.document.path, new_name)
+
+    with open(template.document.path, "rb") as f:
+        with ContentFile(f.read()) as doc_content:
+            template.document.save(new_path, doc_content)
+            template.save()
+
+    os.remove(old_path)
+
+    return new_name
